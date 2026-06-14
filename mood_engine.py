@@ -35,7 +35,7 @@ MOOD_DESC = {
     "Angry":     "Intense and powerful tracks to let it out",
 }
 
-# ── Load data ─────────────────────────────────────────────────────────────────
+#Load data
 print("Loading MoodTunes engine...")
 df = pd.read_csv(CSV_PATH)
 df = df.dropna(subset=["track_name", "artists", "mood"])
@@ -44,7 +44,7 @@ df = (df.sort_values("popularity", ascending=False)
         .reset_index(drop=True))
 print(f"  Loaded {len(df):,} unique songs")
 
-# ── In-memory art cache ───────────────────────────────────────────────────────
+#In-memory art cache
 _art: dict = {}
 _lock = threading.Lock()
 
@@ -55,7 +55,7 @@ def _itunes(term: str) -> str:
             "https://itunes.apple.com/search",
             params={"term": term, "media": "music",
                     "limit": 3, "entity": "song"},
-            timeout=5, verify=False,
+            timeout=8, verify=False,
         )
         if r.status_code == 200:
             for item in r.json().get("results", []):
@@ -152,12 +152,12 @@ def get_mood_stats() -> dict:
     return df["mood"].value_counts().to_dict()
 
 
-# ── Pre-warm top 5 songs per mood on startup ──────────────────────────────────
+# Pre-warm top songs per mood on startup
 def _startup_warm():
     """Fetch art for top 5 songs per mood in background at startup."""
-    time.sleep(2)  # wait for Flask to finish starting
+    time.sleep(5)  # wait for Flask to finish starting
     for mood in MOOD_EMOJIS:
-        subset = df[df["mood"] == mood].nlargest(5, "popularity")
+        subset = df[df["mood"] == mood].nlargest(20, "popularity")
         for _, row in subset.iterrows():
             track  = str(row["track_name"])
             artist = str(row["artists"]).split(";")[0].strip()
