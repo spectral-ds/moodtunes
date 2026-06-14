@@ -140,7 +140,7 @@
         <span class="stat">🎵 {{ song.tempo }} BPM</span>
       </div>
       <a class="listen-btn"
-         href="https://open.spotify.com/search/track:{{ song.track_name|urlencode }}%20artist:{{ song.artists|urlencode }}"
+         href="https://open.spotify.com/search/{{ (song.track_name ~ ' ' ~ song.artists)|urlencode }}"
          target="_blank" rel="noopener">🎧 Listen on Spotify</a>
     </div>
   </div>
@@ -162,7 +162,7 @@
       <span class="stat">⚡ {{ song.energy }}</span>
       <span class="stat">🎵 {{ song.tempo }} BPM</span>
       <a class="list-listen"
-         href="https://open.spotify.com/search/track:{{ song.track_name|urlencode }}%20artist:{{ song.artists|urlencode }}"
+         href="https://open.spotify.com/search/{{ (song.track_name ~ ' ' ~ song.artists)|urlencode }}"
          target="_blank" rel="noopener">🎧 Listen</a>
     </div>
   </div>
@@ -194,3 +194,4 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 {% endblock %}
+
