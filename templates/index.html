@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}MoodTunes — How are you feeling?{% endblock %}
+
+{% block head %}
+<style>
+  .hero {
+    text-align: center;
+    padding: 4rem 1rem 3rem;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: .45rem;
+    background: rgba(29,185,84,0.1);
+    border: 1px solid rgba(29,185,84,0.25);
+    color: #1DB954;
+    font-size: .72rem; font-weight: 700;
+    padding: .28rem 1rem; border-radius: 999px;
+    margin-bottom: 1.6rem;
+    text-transform: uppercase; letter-spacing: .8px;
+  }
+  .hero h1 {
+    font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+    font-weight: 900;
+    line-height: 1.08;
+    margin-bottom: .9rem;
+    letter-spacing: -1.5px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, #1DB954 0%, #4ade80 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    font-size: 1.05rem;
+    color: var(--muted);
+    max-width: 420px;
+    margin: 0 auto 3rem;
+    line-height: 1.65;
+  }
+
+  /* ── Mood buttons ── */
+  .mood-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    max-width: 720px;
+    margin: 0 auto 4rem;
+  }
+  .mood-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .6rem;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 1.8rem 1.8rem 1.4rem;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text);
+    transition: all .22s cubic-bezier(.34,1.56,.64,1);
+    min-width: 128px;
+    position: relative;
+    overflow: hidden;
+  }
+  .mood-btn::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+    background: var(--mc);
+    opacity: 0;
+    transition: opacity .2s;
+    border-radius: 0 0 20px 20px;
+  }
+  .mood-btn:hover {
+    transform: translateY(-8px) scale(1.02);
+    border-color: var(--mc);
+    box-shadow: 0 20px 48px rgba(0,0,0,0.45),
+                0 0 0 1px color-mix(in srgb, var(--mc) 20%, transparent);
+    background: color-mix(in srgb, var(--mc) 6%, var(--card));
+  }
+  .mood-btn:hover::after { opacity: 1; }
+  .mood-emoji {
+    font-size: 3rem; line-height: 1;
+    transition: transform .22s cubic-bezier(.34,1.56,.64,1);
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+  }
+  .mood-btn:hover .mood-emoji { transform: scale(1.2) rotate(-5deg); }
+  .mood-label {
+    font-size: 1rem; font-weight: 800; letter-spacing: -.3px;
+  }
+  .mood-count {
+    font-size: .72rem; color: var(--muted);
+    background: var(--card2);
+    padding: .15rem .55rem; border-radius: 999px;
+  }
+
+  /* ── Feature cards ── */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: .9rem;
+    margin-top: 1rem;
+  }
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 1.4rem;
+    transition: border-color .2s;
+  }
+  .feature-card:hover { border-color: var(--border2); }
+  .f-icon {
+    font-size: 1.4rem;
+    margin-bottom: .8rem;
+    display: block;
+  }
+  .feature-card h3 {
+    font-size: .9rem; font-weight: 700; margin-bottom: .35rem;
+  }
+  .feature-card p {
+    font-size: .8rem; color: var(--muted); line-height: 1.6;
+  }
+
+  @media(max-width:640px) {
+    .hero { padding: 2.5rem 1rem 2rem; }
+    .mood-btn { min-width: 100px; padding: 1.4rem 1.2rem 1.1rem; }
+    .mood-emoji { font-size: 2.4rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <div class="hero-badge">🎵 ML-Powered Playlists</div>
+  <h1>How are you feeling<br><em>right now?</em></h1>
+  <p>Pick a mood — get an instant playlist of songs that match exactly how you feel.</p>
+</div>
+
+<div class="mood-grid">
+  {% for mood in moods %}
+  <a href="/playlist/{{ mood }}" class="mood-btn"
+     style="--mc: {{ mood_colors[mood] }};">
+    <span class="mood-emoji">{{ mood_emojis[mood] }}</span>
+    <span class="mood-label">{{ mood }}</span>
+    <span class="mood-count">{{ stats.get(mood, 0)|int }} songs</span>
+  </a>
+  {% endfor %}
+</div>
+
+<div class="features">
+  <div class="feature-card">
+    <span class="f-icon">🤖</span>
+    <h3>K-Means Clustering</h3>
+    <p>Songs are grouped into moods using unsupervised ML on 6 Spotify audio features — no manual labelling needed.</p>
+  </div>
+  <div class="feature-card">
+    <span class="f-icon">🎵</span>
+    <h3>89,740 Songs</h3>
+    <p>The Spotify Tracks Dataset — cleaned, deduplicated, and clustered into 5 distinct mood categories.</p>
+  </div>
+  <div class="feature-card">
+    <span class="f-icon">⚡</span>
+    <h3>Instant Results</h3>
+    <p>Click a mood and get your top 20 songs instantly, sorted by Spotify popularity score.</p>
+  </div>
+</div>
+{% endblock %}

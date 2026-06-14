@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}{{ emoji }} {{ mood }} Playlist — MoodTunes{% endblock %}
+{% set active_mood = mood %}
+
+{% block head %}
+<style>
+  .back-link { display:inline-flex; align-items:center; gap:.4rem; color:var(--muted); text-decoration:none; font-size:.83rem; margin-bottom:1.4rem; transition:color .15s; }
+  .back-link:hover { color:var(--text); }
+  .header-hero { display:flex; align-items:center; gap:1.6rem; margin-bottom:1.6rem; flex-wrap:wrap; }
+  .mood-big-icon {
+    width:90px; height:90px; border-radius:22px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:3.2rem;
+    background:linear-gradient(135deg,{{ color }}33,{{ color }}11);
+    border:1px solid {{ color }}44; box-shadow:0 8px 32px {{ color }}22;
+  }
+  .header-text h1 { font-size:clamp(1.8rem,4vw,2.8rem); font-weight:900; letter-spacing:-1px; line-height:1.1; margin-bottom:.4rem; }
+  .header-text p { font-size:.95rem; color:var(--muted); margin-bottom:.7rem; }
+  .header-meta { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; }
+  .meta-chip { background:var(--card2); border:1px solid var(--border); border-radius:7px; font-size:.73rem; padding:.2rem .6rem; color:var(--muted); }
+  .controls-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.8rem; margin-bottom:1.6rem; }
+  .mood-switch { display:flex; flex-wrap:wrap; gap:.4rem; }
+  .sw-btn { display:inline-flex; align-items:center; gap:.3rem; background:var(--card); border:1px solid var(--border); color:var(--muted); padding:.32rem .9rem; border-radius:999px; font-size:.82rem; cursor:pointer; text-decoration:none; transition:all .16s; font-weight:500; }
+  .sw-btn:hover { color:var(--text); border-color:var(--border2); }
+  .sw-btn.active { color:#fff!important; border-color:var(--sc)!important; background:var(--sc)!important; }
+  .view-toggle { display:flex; gap:.35rem; }
+  .vt-btn { width:34px; height:34px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1rem; transition:all .15s; }
+  .vt-btn:hover { color:var(--text); border-color:var(--border2); }
+  .vt-btn.active { background:var(--card2); border-color:var(--border2); color:var(--text); }
+  .sec-label { font-size:.66rem; text-transform:uppercase; letter-spacing:1.8px; color:var(--muted2); font-weight:600; margin-bottom:1rem; }
+
+  /* Art box — shared by grid and list */
+  .art-box { background:var(--card2); overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; }
+  .art-box::before { content:''; position:absolute; inset:0; background:linear-gradient(110deg,var(--card2) 25%,var(--card3) 50%,var(--card2) 75%); background-size:300% 100%; animation:shimmer 1.6s ease-in-out infinite; }
+  .art-box img { width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity .35s; position:relative; z-index:1; }
+  .art-box img.loaded { opacity:1; }
+  .art-box img.ready { opacity:1; } /* already had URL when page rendered */
+  .art-box .no-art { position:absolute; inset:0; z-index:2; display:none; align-items:center; justify-content:center; font-size:2rem; color:var(--muted2); }
+
+  .stat { background:var(--card2); border:1px solid var(--border); border-radius:5px; font-size:.68rem; padding:.16rem .46rem; color:var(--muted); display:inline-flex; align-items:center; gap:.2rem; }
+  .stat.pop { color:#FFD700; border-color:rgba(255,215,0,.25); }
+  .listen-btn { display:flex; align-items:center; justify-content:center; gap:.3rem; background:var(--card2); border:1px solid var(--border); border-radius:8px; padding:.35rem; font-size:.72rem; text-decoration:none; color:var(--muted); transition:all .15s; }
+  .listen-btn:hover { background:var(--green); border-color:var(--green); color:#fff; }
+
+  /* GRID */
+  #grid-view { display:grid; grid-template-columns:repeat(auto-fill,minmax(195px,1fr)); gap:1rem; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:var(--r); overflow:hidden; transition:transform .2s,box-shadow .2s,border-color .2s; }
+  .card:hover { transform:translateY(-5px); box-shadow:0 16px 40px rgba(0,0,0,.5); border-color:var(--border2); }
+  .card .art-box { width:100%; aspect-ratio:1; border-radius:0; }
+  .card .no-art { font-size:3rem; }
+  .card-body { padding:.9rem; }
+  .card-title { font-size:.88rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:.2rem; }
+  .card-artist { font-size:.77rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:.65rem; }
+  .card-stats { display:flex; flex-wrap:wrap; gap:.28rem; margin-bottom:.6rem; }
+
+  /* LIST */
+  #list-view { display:none; flex-direction:column; gap:.45rem; }
+  .list-item { display:flex; align-items:center; gap:1rem; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:.7rem 1rem; transition:background .15s,border-color .15s; }
+  .list-item:hover { background:var(--card2); border-color:var(--border2); }
+  .list-num { font-size:.78rem; color:var(--muted2); font-weight:700; width:22px; text-align:right; flex-shrink:0; }
+  .list-item .art-box { width:48px; height:48px; border-radius:8px; }
+  .list-item .no-art { font-size:1.2rem; }
+  .list-info { flex:1; min-width:0; }
+  .list-title { font-size:.88rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .list-artist { font-size:.77rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .list-right { display:flex; align-items:center; gap:.5rem; flex-shrink:0; }
+  .list-listen { display:inline-flex; align-items:center; gap:.25rem; background:var(--card2); border:1px solid var(--border); border-radius:6px; padding:.28rem .7rem; text-decoration:none; color:var(--muted); font-size:.72rem; transition:all .15s; }
+  .list-listen:hover { background:var(--green); border-color:var(--green); color:#fff; }
+
+  body.list-mode #grid-view { display:none; }
+  body.list-mode #list-view { display:flex; }
+
+  @media(max-width:640px){ .controls-bar{flex-direction:column;align-items:flex-start;} .list-right .stat{display:none;} }
+</style>
+{% endblock %}
+
+{% macro art_img(song) %}
+{% if song.art_url %}
+  <img src="{{ song.art_url }}" class="ready"
+       alt="{{ song.track_name }}"
+       loading="lazy"
+       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+  <div class="no-art">🎵</div>
+{% else %}
+  <img src="" class=""
+       data-track="{{ song.track_name }}"
+       data-artist="{{ song.artists }}"
+       data-pending="1"
+       alt="{{ song.track_name }}">
+  <div class="no-art">🎵</div>
+{% endif %}
+{% endmacro %}
+
+{% block content %}
+<a href="/" class="back-link">← Back to moods</a>
+
+<div class="header-hero">
+  <div class="mood-big-icon">{{ emoji }}</div>
+  <div class="header-text">
+    <h1>{{ mood }} Playlist</h1>
+    <p>{{ desc }}</p>
+    <div class="header-meta">
+      <span class="meta-chip">{{ songs|length }} songs</span>
+      <span class="meta-chip">Sorted by popularity</span>
+      <span class="mood-pill" style="color:{{ color }};border-color:{{ color }}55;background:{{ color }}11;">
+        {{ emoji }} {{ mood }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="controls-bar">
+  <div class="mood-switch">
+    {% for m in moods %}
+    <a href="/playlist/{{ m }}" class="sw-btn {% if m == mood %}active{% endif %}"
+       style="--sc:{{ mood_colors[m] }};">{{ mood_emojis[m] }} {{ m }}</a>
+    {% endfor %}
+  </div>
+  <div class="view-toggle">
+    <button class="vt-btn active" id="btn-grid" onclick="setView('grid')" title="Grid">⊞</button>
+    <button class="vt-btn"        id="btn-list" onclick="setView('list')" title="List">☰</button>
+  </div>
+</div>
+
+<div class="sec-label">Top {{ songs|length }} {{ mood }} songs</div>
+
+{% if songs %}
+
+<!-- GRID -->
+<div id="grid-view">
+  {% for song in songs %}
+  <div class="card">
+    <div class="art-box">{{ art_img(song) }}</div>
+    <div class="card-body">
+      <div class="card-title" title="{{ song.track_name }}">{{ song.track_name }}</div>
+      <div class="card-artist">{{ song.artists }}</div>
+      <div class="card-stats">
+        <span class="stat pop">⭐ {{ song.popularity }}</span>
+        <span class="stat">💃 {{ song.danceability }}</span>
+        <span class="stat">⚡ {{ song.energy }}</span>
+        <span class="stat">🎵 {{ song.tempo }} BPM</span>
+      </div>
+      <a class="listen-btn"
+         href="https://open.spotify.com/search/track:{{ song.track_name|urlencode }}%20artist:{{ song.artists|urlencode }}"
+         target="_blank" rel="noopener">🎧 Listen on Spotify</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- LIST -->
+<div id="list-view">
+  {% for song in songs %}
+  <div class="list-item">
+    <div class="list-num">{{ loop.index }}</div>
+    <div class="art-box">{{ art_img(song) }}</div>
+    <div class="list-info">
+      <div class="list-title">{{ song.track_name }}</div>
+      <div class="list-artist">{{ song.artists }}</div>
+    </div>
+    <div class="list-right">
+      <span class="stat pop">⭐ {{ song.popularity }}</span>
+      <span class="stat">⚡ {{ song.energy }}</span>
+      <span class="stat">🎵 {{ song.tempo }} BPM</span>
+      <a class="list-listen"
+         href="https://open.spotify.com/search/track:{{ song.track_name|urlencode }}%20artist:{{ song.artists|urlencode }}"
+         target="_blank" rel="noopener">🎧 Listen</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div style="text-align:center;padding:5rem;color:var(--muted);">No songs found. Run Notebook 1 first.</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setView(v) {
+  document.body.classList.toggle('list-mode', v==='list');
+  document.getElementById('btn-grid').classList.toggle('active', v!=='list');
+  document.getElementById('btn-list').classList.toggle('active', v==='list');
+  localStorage.setItem('moodtunes_view', v);
+}
+document.addEventListener('DOMContentLoaded', function(){
+  if (localStorage.getItem('moodtunes_view')==='list') setView('list');
+
+  // Make already-loaded images visible immediately
+  document.querySelectorAll('img.ready').forEach(function(img){
+    img.classList.add('loaded');
+    var na = img.nextElementSibling;
+    if (na) na.style.display='none';
+  });
+});
+</script>
+{% endblock %}

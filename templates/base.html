@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}MoodTunes{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+  <meta name="theme-color" content="#1DB954">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:    #0a0a0f; --card:  #13131a; --card2: #1c1c26; --card3: #22222e;
+      --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+      --text: #eeeef5; --muted: #8888a8; --muted2: #444460; --green: #1DB954; --r: 16px;
+    }
+    body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-height:100vh; }
+    nav {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 2rem; height:60px; background:rgba(10,10,15,0.92);
+      border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; backdrop-filter:blur(20px);
+    }
+    .nav-logo { font-size:1.2rem; font-weight:800; text-decoration:none; color:var(--text); letter-spacing:-0.5px; display:flex; align-items:center; gap:.45rem; }
+    .nav-logo .logo-icon { width:28px; height:28px; background:var(--green); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.85rem; }
+    .nav-logo span { color:var(--green); }
+    .nav-moods { display:flex; gap:.4rem; }
+    .nav-mood-btn {
+      display:inline-flex; align-items:center; gap:.3rem; background:transparent;
+      border:1px solid var(--border); color:var(--muted); padding:.28rem .85rem;
+      border-radius:999px; font-size:.8rem; cursor:pointer; text-decoration:none; transition:all .18s; font-weight:500;
+    }
+    .nav-mood-btn:hover { border-color:var(--border2); color:var(--text); background:var(--card2); }
+    .nav-mood-btn.active { border-color:var(--active-c)!important; color:var(--active-c)!important; background:color-mix(in srgb,var(--active-c) 10%,transparent); }
+    main { max-width:1200px; margin:0 auto; padding:2.5rem 1.5rem 4rem; }
+    .mood-pill { display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .7rem; border-radius:999px; font-size:.76rem; font-weight:600; border:1px solid; }
+    footer { text-align:center; padding:1.8rem; color:var(--muted2); font-size:.76rem; border-top:1px solid var(--border); margin-top:3rem; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    @media(max-width:640px){ .nav-moods{display:none;} nav{padding:0 1rem;} main{padding:1.5rem 1rem 3rem;} }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="logo-icon">🎵</div>Mood<span>Tunes</span>
+  </a>
+  <div class="nav-moods">
+    {% for m in moods %}
+    <a href="/playlist/{{ m }}" class="nav-mood-btn {% if active_mood == m %}active{% endif %}"
+       style="--active-c:{{ mood_colors[m] }};">{{ mood_emojis[m] }} {{ m }}</a>
+    {% endfor %}
+  </div>
+</nav>
+<main>{% block content %}{% endblock %}</main>
+<footer>MoodTunes &nbsp;·&nbsp; Music Mood Classifier &nbsp;·&nbsp; ML-Powered Playlists</footer>
+
+<script>
+// For songs whose art wasn't ready when the page loaded,
+// poll /api/cover once — by then background thread has fetched it
+(function(){
+  var POLL_DELAY = 800; // ms after page load before polling
+
+  function applyUrl(imgs, url) {
+    imgs.forEach(function(img) {
+      var wrap  = img.closest('.art-box');
+      var noArt = wrap ? wrap.querySelector('.no-art') : null;
+      if (url) {
+        img.onload  = function(){ img.classList.add('loaded'); if(noArt) noArt.style.display='none'; };
+        img.onerror = function(){ img.style.display='none'; if(noArt) noArt.style.display='flex'; };
+        img.src = url;
+      } else {
+        img.style.display = 'none';
+        if (noArt) noArt.style.display = 'flex';
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // Group pending images by track|artist key to avoid duplicate requests
+    var pending = {};
+    document.querySelectorAll('img[data-pending="1"]').forEach(function(img){
+      var key = img.getAttribute('data-track') + '|' + img.getAttribute('data-artist');
+      if (!pending[key]) pending[key] = [];
+      pending[key].push(img);
+    });
+
+    var keys = Object.keys(pending);
+    if (!keys.length) return;
+
+    // Stagger polls slightly so we don't hit iTunes simultaneously
+    keys.forEach(function(key, i){
+      var imgs   = pending[key];
+      var track  = imgs[0].getAttribute('data-track');
+      var artist = imgs[0].getAttribute('data-artist');
+      setTimeout(function(){
+        fetch('/api/cover?track=' + encodeURIComponent(track) +
+              '&artist='  + encodeURIComponent(artist))
+          .then(function(r){ return r.json(); })
+          .then(function(d){ applyUrl(imgs, d.url || ''); })
+          .catch(function(){  applyUrl(imgs, ''); });
+      }, POLL_DELAY + i * 180);
+    });
+  });
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
