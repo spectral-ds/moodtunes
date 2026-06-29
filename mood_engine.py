@@ -155,14 +155,14 @@ def get_mood_stats() -> dict:
 # Pre-warm top songs per mood on startup
 def _startup_warm():
     """Fetch art for top 5 songs per mood in background at startup."""
-    time.sleep(5)  # wait for Flask to finish starting
+    time.sleep(8)  # wait for Flask to finish starting
     for mood in MOOD_EMOJIS:
         subset = df[df["mood"] == mood].nlargest(20, "popularity")
         for _, row in subset.iterrows():
             track  = str(row["track_name"])
             artist = str(row["artists"]).split(";")[0].strip()
             _fetch_art(track, artist)
-            time.sleep(0.15)
+            time.sleep(0.3)
     print("Startup art pre-warm done")
 
 threading.Thread(target=_startup_warm, daemon=True).start()
